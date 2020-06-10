@@ -218,7 +218,7 @@ victron_yield_power_watts{component_id="256",component_type="solarcharger"} 26.2
 victron_yield_power_watts{component_id="258",component_type="solarcharger"} 15.779999732971191
 ```
 
-## Licence
+### Licence
 
 Copyright 2020, Andrew Newdigate
 
