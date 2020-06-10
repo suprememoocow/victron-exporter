@@ -16,11 +16,12 @@ func main() {
 	var (
 		listenAddress = flag.String("web.listen-address", ":9226",
 			"Address on which to expose metrics and web interface.")
-		host     = flag.String("mqtt.host", "", "")
-		port     = flag.Int("mqtt.port", 8883, "")
-		secure   = flag.Bool("mqtt.secure", true, "")
-		username = flag.String("mqtt.username", "", "")
-		password = flag.String("mqtt.password", "", "")
+		host         = flag.String("mqtt.host", "", "")
+		port         = flag.Int("mqtt.port", 8883, "")
+		secure       = flag.Bool("mqtt.secure", true, "")
+		username     = flag.String("mqtt.username", "", "")
+		password     = flag.String("mqtt.password", "", "")
+		pollInterval = flag.Duration("victron.poll_interval", 10*time.Second, "MQTT poll interval")
 	)
 	flag.Parse()
 
@@ -41,10 +42,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	timer := time.NewTicker(5 * time.Second)
+	timer := time.NewTicker(*pollInterval)
 	for range timer.C {
 		if systemSerialID != "" {
-			client.Publish(fmt.Sprint("R/%s/system/0/Serial", systemSerialID), 1, false, "")
+			client.Publish(fmt.Sprintf("R/%s/system/0/Serial", systemSerialID), 1, false, "")
 		}
 	}
 }

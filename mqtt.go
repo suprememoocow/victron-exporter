@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"strings"
 	"time"
@@ -97,11 +96,13 @@ func listen(mqttOptions *mqtt.ClientOptions, topic string) error {
 
 		topicString := strings.Join(topicInfoParts, "/")
 
-		if topicString == "Serial" {
+		if (topicString == "Serial") && (systemSerialID == "") {
 			var v victronStringValue
 			json.Unmarshal(msg.Payload(), &v)
-			log.Println("SSetting serial to " + *v.Value)
-			systemSerialID = *v.Value
+
+			if v.Value != nil {
+				systemSerialID = *v.Value
+			}
 		}
 
 		o, ok := suffixTopicMap[topicString]
