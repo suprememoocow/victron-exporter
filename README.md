@@ -4,6 +4,11 @@ A Prometheus/OpenMetrics exporter to Victron's CC GX module, using MQTT.
 
 Works locally and with the VRM portal.
 
+Here is an example of the kind of dashboard you can build using the information provided by this
+exporter. This example is built in Grafana.
+
+![Example Grafana dashboard generated using this exporter](img/example_grafana_dashboard.png)
+
 ## Usage
 
 ### Local Usage
