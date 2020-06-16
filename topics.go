@@ -59,6 +59,9 @@ func phaseAlarm(phase string, alarmType string) mqttObserver {
 	return gaugeObserver(gauge)
 }
 
+// These paths are documented at
+// https://github.com/victronenergy/venus/wiki/dbus
+
 var suffixTopicMap = map[string]mqttObserver{
 	"Ac/ActiveIn/Source": gaugeObserver(
 		prometheus.GaugeOpts{
@@ -202,7 +205,7 @@ var suffixTopicMap = map[string]mqttObserver{
 	"Dc/Vebus/Power": gaugeObserver(
 		prometheus.GaugeOpts{
 			Name: "dc_vebus_power_watts",
-			Help: "",
+			Help: "Charge/discharge power from the VE.Bus system",
 		}),
 	"Buzzer/State": gaugeObserver(
 		prometheus.GaugeOpts{
