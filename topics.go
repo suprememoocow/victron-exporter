@@ -4,8 +4,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const namespace = "victron"
-
 type mqttObserver func(componentType string, componentId string, value float64)
 
 var labels = []string{"component_type", "component_id"}

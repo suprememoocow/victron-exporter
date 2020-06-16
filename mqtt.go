@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"log"
+
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -40,36 +42,83 @@ func newTLSConfig() *tls.Config {
 	}
 }
 
-func connect(mqttOptions *mqtt.ClientOptions) (mqtt.Client, error) {
-	client := mqtt.NewClient(mqttOptions)
+type mqttConnnectionConfig struct {
+	host     string
+	port     int
+	secure   bool
+	username string
+	password string
+}
+
+func connectWait(client mqtt.Client) error {
 	token := client.Connect()
 	for !token.WaitTimeout(3 * time.Second) {
 	}
-	if err := token.Error(); err != nil {
-		return nil, err
-	}
-	return client, nil
+	return token.Error()
 }
 
-func createClientOptions(clientID string, host string, port int, secure bool, username string, password string) *mqtt.ClientOptions {
-	opts := mqtt.NewClientOptions()
+func connect(clientID string, config mqttConnnectionConfig) (mqtt.Client, error) {
+	client := mqtt.NewClient(createClientOptions(clientID, config, nil))
+	return client, connectWait(client)
+}
 
-	if secure {
-		opts.AddBroker(fmt.Sprintf("ssl://%s:%d", host, port))
+func listen(clientID string, config mqttConnnectionConfig, topic string) error {
+	onConnect := func(client mqtt.Client) {
+		// We need to subscribe after each connection
+		// since mqtt does not maintain subscriptions across reconnects
+		client.Subscribe(topic, 0, mqttSubscriptionHandler)
+	}
+
+	client := mqtt.NewClient(createClientOptions(clientID, config, onConnect))
+	return connectWait(client)
+}
+
+func newConnectionLostHandler(clientID string) mqtt.ConnectionLostHandler {
+	return func(c mqtt.Client, e error) {
+		log.Printf("mqtt connection lost. clientId=%v, error=%v", clientID, e)
+		connectionStatus.WithLabelValues(clientID).Set(0)
+		connectionStatusSinceTimeSeconds.WithLabelValues(clientID).Set(float64(time.Now().Unix()))
+	}
+}
+
+func newConnectionHandler(clientID string, wrapped mqtt.OnConnectHandler) mqtt.OnConnectHandler {
+	return func(c mqtt.Client) {
+		log.Printf("mqtt connected. clientId=%v", clientID)
+		connectionStatus.WithLabelValues(clientID).Set(1)
+		connectionStatusSinceTimeSeconds.WithLabelValues(clientID).Set(float64(time.Now().Unix()))
+
+		if wrapped != nil {
+			wrapped(c)
+		}
+	}
+}
+
+func createClientOptions(clientID string, config mqttConnnectionConfig, onConnectionHandler mqtt.OnConnectHandler) *mqtt.ClientOptions {
+	opts := mqtt.NewClientOptions()
+	opts.SetAutoReconnect(true)
+	opts.SetMaxReconnectInterval(1 * time.Minute)
+	opts.SetWriteTimeout(30 * time.Second)
+	opts.SetOrderMatters(false)
+	opts.SetConnectionLostHandler(newConnectionLostHandler(clientID))
+	opts.SetOnConnectHandler(newConnectionHandler(clientID, onConnectionHandler))
+
+	if config.secure {
+		opts.AddBroker(fmt.Sprintf("ssl://%s:%d", config.host, config.port))
 		opts.SetTLSConfig(newTLSConfig())
 	} else {
-		opts.AddBroker(fmt.Sprintf("tcp://%s:%d", host, port))
+		opts.AddBroker(fmt.Sprintf("tcp://%s:%d", config.host, config.port))
 	}
 
-	if username != "" {
-		opts.SetUsername(username)
+	if config.username != "" {
+		opts.SetUsername(config.username)
 	}
 
-	if password != "" {
-		opts.SetPassword(password)
+	if config.password != "" {
+		opts.SetPassword(config.password)
 	}
 
 	opts.SetClientID(clientID)
+	opts.SetCleanSession(true)
 	return opts
 }
 
@@ -81,42 +130,39 @@ type victronStringValue struct {
 	Value *string `json:"value"`
 }
 
-func listen(mqttOptions *mqtt.ClientOptions, topic string) error {
-	client, err := connect(mqttOptions)
-	if err != nil {
-		return err
+func mqttSubscriptionHandler(client mqtt.Client, msg mqtt.Message) {
+	subscriptionsUpdatesTotal.Inc()
+
+	topic := msg.Topic()
+	topicParts := strings.Split(topic, "/")
+	topicInfoParts := topicParts[4:]
+
+	componentType := topicParts[2]
+	componentID := topicParts[3]
+
+	topicString := strings.Join(topicInfoParts, "/")
+
+	if (topicString == "Serial") && (systemSerialID == "") {
+		var v victronStringValue
+		json.Unmarshal(msg.Payload(), &v)
+
+		if v.Value != nil {
+			systemSerialID = *v.Value
+		}
+		return
 	}
-	client.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
-		topic := msg.Topic()
-		topicParts := strings.Split(topic, "/")
-		topicInfoParts := topicParts[4:]
 
-		componentType := topicParts[2]
-		componentID := topicParts[3]
+	o, ok := suffixTopicMap[topicString]
+	if ok {
+		var v victronValue
+		json.Unmarshal(msg.Payload(), &v)
 
-		topicString := strings.Join(topicInfoParts, "/")
-
-		if (topicString == "Serial") && (systemSerialID == "") {
-			var v victronStringValue
-			json.Unmarshal(msg.Payload(), &v)
-
-			if v.Value != nil {
-				systemSerialID = *v.Value
-			}
+		if v.Value == nil {
+			o(componentType, componentID, math.NaN())
+		} else {
+			o(componentType, componentID, *v.Value)
 		}
-
-		o, ok := suffixTopicMap[topicString]
-		if ok {
-			var v victronValue
-			json.Unmarshal(msg.Payload(), &v)
-
-			if v.Value == nil {
-				o(componentType, componentID, math.NaN())
-			} else {
-				o(componentType, componentID, *v.Value)
-			}
-		}
-	})
-
-	return nil
+	} else {
+		subscriptionsUpdatesIgnoredTotal.Inc()
+	}
 }
