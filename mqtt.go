@@ -5,11 +5,10 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"strings"
 	"time"
-
-	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -135,6 +134,10 @@ func mqttSubscriptionHandler(client mqtt.Client, msg mqtt.Message) {
 
 	topic := msg.Topic()
 	topicParts := strings.Split(topic, "/")
+	if len(topicParts) < 5 {
+		subscriptionsUpdatesIgnoredTotal.Inc()
+		return
+	}
 	topicInfoParts := topicParts[4:]
 
 	componentType := topicParts[2]
