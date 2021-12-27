@@ -35,7 +35,7 @@ func newTLSConfig() *tls.Config {
 		ClientCAs: nil,
 		// InsecureSkipVerify = verify that cert contents
 		// match server. IP matches what is in cert etc.
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: true, //nolint:gosec
 		// // Certificates = list of certs client sends to server.
 		// Certificates: []tls.Certificate{cert},
 	}
@@ -53,11 +53,13 @@ func connectWait(client mqtt.Client) error {
 	token := client.Connect()
 	for !token.WaitTimeout(3 * time.Second) {
 	}
-	return token.Error()
+
+	return fmt.Errorf("failed to connect to mqtt: %w", token.Error())
 }
 
 func connect(clientID string, config mqttConnnectionConfig) (mqtt.Client, error) {
 	client := mqtt.NewClient(createClientOptions(clientID, config, nil))
+
 	return client, connectWait(client)
 }
 
@@ -69,6 +71,7 @@ func listen(clientID string, config mqttConnnectionConfig, topic string) error {
 	}
 
 	client := mqtt.NewClient(createClientOptions(clientID, config, onConnect))
+
 	return connectWait(client)
 }
 
@@ -118,6 +121,7 @@ func createClientOptions(clientID string, config mqttConnnectionConfig, onConnec
 
 	opts.SetClientID(clientID)
 	opts.SetCleanSession(true)
+
 	return opts
 }
 
@@ -136,6 +140,7 @@ func mqttSubscriptionHandler(client mqtt.Client, msg mqtt.Message) {
 	topicParts := strings.Split(topic, "/")
 	if len(topicParts) < 5 {
 		subscriptionsUpdatesIgnoredTotal.Inc()
+
 		return
 	}
 	topicInfoParts := topicParts[4:]
@@ -147,25 +152,40 @@ func mqttSubscriptionHandler(client mqtt.Client, msg mqtt.Message) {
 
 	if (topicString == "Serial") && (systemSerialID == "") {
 		var v victronStringValue
-		json.Unmarshal(msg.Payload(), &v)
+
+		err := json.Unmarshal(msg.Payload(), &v)
+		if err != nil {
+			subscriptionsUpdatesIgnoredTotal.Inc()
+
+			return
+		}
 
 		if v.Value != nil {
 			systemSerialID = *v.Value
 		}
+
 		return
 	}
 
 	o, ok := suffixTopicMap[topicString]
-	if ok {
-		var v victronValue
-		json.Unmarshal(msg.Payload(), &v)
-
-		if v.Value == nil {
-			o(componentType, componentID, math.NaN())
-		} else {
-			o(componentType, componentID, *v.Value)
-		}
-	} else {
+	if !ok {
 		subscriptionsUpdatesIgnoredTotal.Inc()
+
+		return
+	}
+
+	var v victronValue
+
+	err := json.Unmarshal(msg.Payload(), &v)
+	if err != nil {
+		subscriptionsUpdatesIgnoredTotal.Inc()
+
+		return
+	}
+
+	if v.Value == nil {
+		o(componentType, componentID, math.NaN())
+	} else {
+		o(componentType, componentID, *v.Value)
 	}
 }

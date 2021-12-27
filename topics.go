@@ -12,6 +12,7 @@ func gaugeObserver(opts prometheus.GaugeOpts) mqttObserver {
 	opts.Namespace = namespace
 	gauge := prometheus.NewGaugeVec(opts, labels)
 	prometheus.MustRegister(gauge)
+
 	return func(componentType string, componentId string, value float64) {
 		gauge.WithLabelValues(componentType, componentId).Set(value)
 	}
@@ -23,10 +24,12 @@ func counterObserver(opts prometheus.CounterOpts) mqttObserver {
 	prometheus.MustRegister(counter)
 	var prevValue float64
 	first := true
+
 	return func(componentType string, componentId string, value float64) {
 		if first {
 			prevValue = value
 			first = false
+
 			return
 		}
 
@@ -427,7 +430,7 @@ var suffixTopicMap = map[string]mqttObserver{
 		}),
 	"Dc/0/Temperature": gaugeObserver(
 		prometheus.GaugeOpts{
-			Name:        "dc_temperature_celcius",
+			Name:        "dc_temperature_celsius",
 			Help:        "°C - Battery temperature",
 			ConstLabels: prometheus.Labels{"n": "0"},
 		}),
@@ -990,7 +993,7 @@ var suffixTopicMap = map[string]mqttObserver{
 		}),
 	"Dc/1/Temperature": gaugeObserver(
 		prometheus.GaugeOpts{
-			Name:        "dc_temperature_celcius",
+			Name:        "dc_temperature_celsius",
 			Help:        "°C - Battery temperature",
 			ConstLabels: prometheus.Labels{"n": "1"},
 		}),
@@ -1008,7 +1011,7 @@ var suffixTopicMap = map[string]mqttObserver{
 		}),
 	"Dc/2/Temperature": gaugeObserver(
 		prometheus.GaugeOpts{
-			Name:        "dc_temperature_celcius",
+			Name:        "dc_temperature_celsius",
 			Help:        "°C - Battery temperature",
 			ConstLabels: prometheus.Labels{"n": "2"},
 		}),
@@ -1060,7 +1063,7 @@ var suffixTopicMap = map[string]mqttObserver{
 		}),
 	"Dc/Battery/Temperature": gaugeObserver(
 		prometheus.GaugeOpts{
-			Name: "dc_battery_temperature_celcius",
+			Name: "dc_battery_temperature_celsius",
 			Help: "",
 		}),
 }

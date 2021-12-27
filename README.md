@@ -143,9 +143,9 @@ victron_dc_battery_current{component_id="0",component_type="system"} 0.5
 # HELP victron_dc_battery_power_watts
 # TYPE victron_dc_battery_power_watts gauge
 victron_dc_battery_power_watts{component_id="0",component_type="system"} 27
-# HELP victron_dc_battery_temperature_celcius
-# TYPE victron_dc_battery_temperature_celcius gauge
-victron_dc_battery_temperature_celcius{component_id="0",component_type="system"} 22.399999618530273
+# HELP victron_dc_battery_temperature_celsius
+# TYPE victron_dc_battery_temperature_celsius gauge
+victron_dc_battery_temperature_celsius{component_id="0",component_type="system"} 22.399999618530273
 # HELP victron_dc_battery_voltage_volts
 # TYPE victron_dc_battery_voltage_volts gauge
 victron_dc_battery_voltage_volts{component_id="0",component_type="system"} 55.2400016784668
@@ -164,9 +164,9 @@ victron_dc_pv_current_amps{component_id="0",component_type="system"} 0.800000011
 # HELP victron_dc_pv_power_watts
 # TYPE victron_dc_pv_power_watts gauge
 victron_dc_pv_power_watts{component_id="0",component_type="system"} 44.233999911308274
-# HELP victron_dc_temperature_celcius °C - Battery temperature
-# TYPE victron_dc_temperature_celcius gauge
-victron_dc_temperature_celcius{component_id="512",component_type="battery",n="0"} 22.399999618530273
+# HELP victron_dc_temperature_celsius °C - Battery temperature
+# TYPE victron_dc_temperature_celsius gauge
+victron_dc_temperature_celsius{component_id="512",component_type="battery",n="0"} 22.399999618530273
 # HELP victron_dc_vebus_power_watts
 # TYPE victron_dc_vebus_power_watts gauge
 victron_dc_vebus_power_watts{component_id="0",component_type="system"} 20
@@ -223,7 +223,12 @@ victron_yield_power_watts{component_id="256",component_type="solarcharger"} 26.2
 victron_yield_power_watts{component_id="258",component_type="solarcharger"} 15.779999732971191
 ```
 
-### Licence
+## Hacking on `victron-exporter`
+
+1. This project uses [`asdf`](https://asdf-vm.com/) for tool version management. All the build dependencies should be expressed in the `.tool-versions` file. Once you have `asdf` setup, run `scripts/install-asdf-plugins.sh` to install all required `asdf` plugins.
+1. This project use [`pre-commit`](https://pre-commit.com/) to perform basic checks and lints of the codebase. The checks will be run in CI using GitHub Actions, but you can also install `pre-commit` locally for faster feedback.
+
+### License
 
 Copyright 2020, Andrew Newdigate
 
