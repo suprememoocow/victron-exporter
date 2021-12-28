@@ -5,12 +5,12 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"strings"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	log "github.com/sirupsen/logrus"
 )
 
 func newTLSConfig() *tls.Config {
@@ -41,7 +41,7 @@ func newTLSConfig() *tls.Config {
 	}
 }
 
-type mqttConnnectionConfig struct {
+type mqttConnectionConfig struct {
 	host     string
 	port     int
 	secure   bool
@@ -62,14 +62,20 @@ func connectWait(client mqtt.Client) error {
 	return nil
 }
 
-func connect(clientID string, config mqttConnnectionConfig) (mqtt.Client, error) {
+func connect(clientID string, config mqttConnectionConfig) (mqtt.Client, error) {
 	client := mqtt.NewClient(createClientOptions(clientID, config, nil))
 
 	return client, connectWait(client)
 }
 
-func listen(clientID string, config mqttConnnectionConfig, topic string) error {
+func listen(clientID string, config mqttConnectionConfig, topic string) error {
+	log.WithFields(log.Fields{
+		"host": config.host,
+		"port": config.port,
+	}).Debug("connecting to mqtt")
+
 	onConnect := func(client mqtt.Client) {
+		log.Info("mqtt connected, subscribing to topics...")
 		// We need to subscribe after each connection
 		// since mqtt does not maintain subscriptions across reconnects
 		client.Subscribe(topic, 0, mqttSubscriptionHandler)
@@ -82,7 +88,9 @@ func listen(clientID string, config mqttConnnectionConfig, topic string) error {
 
 func newConnectionLostHandler(clientID string) mqtt.ConnectionLostHandler {
 	return func(c mqtt.Client, e error) {
-		log.Printf("mqtt connection lost. clientId=%v, error=%v", clientID, e)
+		log.WithFields(log.Fields{
+			"client_id": clientID,
+		}).WithError(e).Error("mqtt connection lost")
 		connectionStatus.WithLabelValues(clientID).Set(0)
 		connectionStatusSinceTimeSeconds.WithLabelValues(clientID).Set(float64(time.Now().Unix()))
 	}
@@ -90,7 +98,7 @@ func newConnectionLostHandler(clientID string) mqtt.ConnectionLostHandler {
 
 func newConnectionHandler(clientID string, wrapped mqtt.OnConnectHandler) mqtt.OnConnectHandler {
 	return func(c mqtt.Client) {
-		log.Printf("mqtt connected. clientId=%v", clientID)
+		log.WithField("client_id", clientID).Info("mqtt connected")
 		connectionStatus.WithLabelValues(clientID).Set(1)
 		connectionStatusSinceTimeSeconds.WithLabelValues(clientID).Set(float64(time.Now().Unix()))
 
@@ -100,7 +108,7 @@ func newConnectionHandler(clientID string, wrapped mqtt.OnConnectHandler) mqtt.O
 	}
 }
 
-func createClientOptions(clientID string, config mqttConnnectionConfig, onConnectionHandler mqtt.OnConnectHandler) *mqtt.ClientOptions {
+func createClientOptions(clientID string, config mqttConnectionConfig, onConnectionHandler mqtt.OnConnectHandler) *mqtt.ClientOptions {
 	opts := mqtt.NewClientOptions()
 	opts.SetAutoReconnect(true)
 	opts.SetMaxReconnectInterval(1 * time.Minute)
@@ -160,6 +168,7 @@ func mqttSubscriptionHandler(client mqtt.Client, msg mqtt.Message) {
 
 		err := json.Unmarshal(msg.Payload(), &v)
 		if err != nil {
+			log.Warn("failed to unmarshal victron mqtt payload: ", err)
 			subscriptionsUpdatesIgnoredTotal.Inc()
 
 			return
@@ -183,6 +192,7 @@ func mqttSubscriptionHandler(client mqtt.Client, msg mqtt.Message) {
 
 	err := json.Unmarshal(msg.Payload(), &v)
 	if err != nil {
+		log.Warn("failed to unmarshal victron mqtt payload: ", err)
 		subscriptionsUpdatesIgnoredTotal.Inc()
 
 		return
