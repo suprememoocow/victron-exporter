@@ -21,3 +21,8 @@ repos:
     rev: v1.41.1 # Keep this in-sync with `.tool-versions`
     hooks:
     -   id: golangci-lint
+  - repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-beta.5
+    hooks:
+    -   id: go-build-mod
+    -   id: go-mod-tidy
