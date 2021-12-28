@@ -223,6 +223,21 @@ victron_yield_power_watts{component_id="256",component_type="solarcharger"} 26.2
 victron_yield_power_watts{component_id="258",component_type="solarcharger"} 15.779999732971191
 ```
 
+## Debugging Problems
+
+Use the `-log.level` command line argument to increase log verbosity. Values are `0=debug, 1=info, 2=warn, 3=error`.
+
+For example:
+
+```console
+$ victron-exporter -mqtt.host 192.168.138.221 -web.listen-address ":9226" -log.level 0
+INFO[0000] victron_exporter listening                    address=":9226"
+DEBU[0000] connecting to mqtt                            host=192.168.138.221 port=8883
+INFO[0000] mqtt connected                                client_id=victron_exporter_sub
+INFO[0000] mqtt connected, subscribing to topics...
+INFO[0000] mqtt connected                                client_id=victron_exporter_pub
+```
+
 ## Hacking on `victron-exporter`
 
 1. This project uses [`asdf`](https://asdf-vm.com/) for tool version management. All the build dependencies should be expressed in the `.tool-versions` file. Once you have `asdf` setup, run `scripts/install-asdf-plugins.sh` to install all required `asdf` plugins.
