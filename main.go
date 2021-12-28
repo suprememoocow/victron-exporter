@@ -27,7 +27,12 @@ func main() {
 	flag.Parse()
 
 	http.Handle("/metrics", promhttp.Handler())
-	go panic(http.ListenAndServe(*listenAddress, nil))
+	go func() {
+		err := http.ListenAndServe(*listenAddress, nil)
+		if err != nil {
+			log.Fatalf("failed to listen: %v", err)
+		}
+	}()
 
 	mqttOpts := mqttConnnectionConfig{*host, *port, *secure, *username, *password}
 	go func() {
