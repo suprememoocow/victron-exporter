@@ -54,7 +54,12 @@ func connectWait(client mqtt.Client) error {
 	for !token.WaitTimeout(3 * time.Second) {
 	}
 
-	return fmt.Errorf("failed to connect to mqtt: %w", token.Error())
+	err := token.Error()
+	if err != nil {
+		return fmt.Errorf("failed to connect to mqtt: %w", err)
+	}
+
+	return nil
 }
 
 func connect(clientID string, config mqttConnnectionConfig) (mqtt.Client, error) {
