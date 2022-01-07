@@ -30,7 +30,6 @@ func getIntEnv(key string, fallback int) int {
 		"env_var":        key,
 		"fallback_value": fallback}).
 		Debug("Unable to find ENV VAR, falling back to default value")
-
 	return fallback
 }
 
@@ -49,7 +48,6 @@ func getBoolEnv(key string, fallback bool) bool {
 		"env_var":        key,
 		"fallback_value": fallback}).
 		Debug("Unable to find ENV VAR, falling back to default value")
-
 	return fallback
 }
 
@@ -68,6 +66,5 @@ func getDurationEnv(key string, fallback time.Duration) time.Duration {
 		"env_var":        key,
 		"fallback_value": fallback}).
 		Debug("Unable to find ENV VAR, falling back to default value")
-
 	return fallback
 }
