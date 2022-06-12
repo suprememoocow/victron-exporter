@@ -1,6 +1,7 @@
 before:
   hooks:
     - go mod tidy
+
 builds:
 - goos:
     - linux
@@ -25,10 +26,37 @@ builds:
     - goos: linux
       goarch: arm
       goarm: 7
+
+
+dockers:
+  - image_templates:
+    - "ghcr.io/suprememoocow/victron-exporter:latest-amd64"
+    - "ghcr.io/suprememoocow/victron-exporter:{{ .Tag }}-amd64"
+    goos: linux
+    goarch: amd64
+  - image_templates:
+    - "ghcr.io/suprememoocow/victron-exporter:latest-arm64"
+    - "ghcr.io/suprememoocow/victron-exporter:{{ .Tag }}-arm64"
+    goos: linux
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "ghcr.io/suprememoocow/victron-exporter:latest"
+    image_templates:
+    - "ghcr.io/suprememoocow/victron-exporter:latest-amd64"
+    - "ghcr.io/suprememoocow/victron-exporter:latest-arm64"
+
+  - name_template: "ghcr.io/suprememoocow/victron-exporter:{{ .Tag }}"
+    image_templates:
+    - "ghcr.io/suprememoocow/victron-exporter:{{ .Tag }}-amd64"
+    - "ghcr.io/suprememoocow/victron-exporter:{{ .Tag }}-arm64"
+
 checksum:
   name_template: 'checksums.txt'
+
 snapshot:
   name_template: "{{ .Tag }}-next"
+
 changelog:
   sort: asc
   filters:
