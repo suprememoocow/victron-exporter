@@ -1,6 +1,6 @@
 module github.com/suprememoocow/victron-exporter
 
-go 1.16
+go 1.17
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.3.5
