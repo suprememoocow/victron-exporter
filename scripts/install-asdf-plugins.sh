@@ -22,9 +22,13 @@ install_plugin() {
     echo "Failed to perform version installation: ${plugin}"
     exit 1
   }
+
+  # Use this plugin for the rest of the install-asdf-plugins.sh script...
+  asdf shell "${plugin}" "$(asdf current "${plugin}" | awk '{print $2}')"
 }
 
 # Install golang first as some of the other plugins require it
 install_plugin golang
 install_plugin goreleaser
 install_plugin golangci-lint
+install_plugin pre-commit
