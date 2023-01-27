@@ -150,6 +150,12 @@ func mqttSubscriptionHandler(client mqtt.Client, msg mqtt.Message) {
 	subscriptionsUpdatesTotal.Inc()
 
 	topic := msg.Topic()
+
+	if strings.HasPrefix(topic, "R/") {
+		log.Trace("Skipping " + topic + " as it's a request topic.");
+		return;
+	}
+
 	topicParts := strings.Split(topic, "/")
 	if len(topicParts) < 5 {
 		subscriptionsUpdatesIgnoredTotal.Inc()
@@ -168,7 +174,7 @@ func mqttSubscriptionHandler(client mqtt.Client, msg mqtt.Message) {
 
 		err := json.Unmarshal(msg.Payload(), &v)
 		if err != nil {
-			log.Warn("failed to unmarshal victron mqtt payload: ", err)
+			log.Warn("failed to unmarshal victron mqtt payload for " + topic + ": ", err)
 			subscriptionsUpdatesIgnoredTotal.Inc()
 
 			return
@@ -188,11 +194,17 @@ func mqttSubscriptionHandler(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
+	// JSON unmarshal will always fail if there is no payload.
+	if len(msg.Payload()) == 0 {
+		log.Trace("Skipping; No value present for " + topic);
+		return
+	}
+
 	var v victronValue
 
 	err := json.Unmarshal(msg.Payload(), &v)
 	if err != nil {
-		log.Warn("failed to unmarshal victron mqtt payload: ", err)
+		log.Warn("failed to unmarshal victron mqtt payload for " + topic + ": ", err)
 		subscriptionsUpdatesIgnoredTotal.Inc()
 
 		return
